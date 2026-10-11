@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Dan River Directory Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+ html,body{margin:0;height:100%;font-family:Calibri,Arial,sans-serif}
+ #bar{padding:8px 12px;background:#fff;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border-bottom:1px solid #ddd}
+ #bar button{border:1px solid #1E2761;background:#fff;color:#1E2761;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:14px}
+ #bar button.on{background:#1E2761;color:#fff}
+ #map{height:calc(100% - 46px)}
+</style></head><body>
+<div id="bar"></div><div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+var DATA_URL="locations.geojson";
+var INLINE=null;
+var map=L.map("map").setView([36.5859,-79.395],12);
+L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:"&copy; OpenStreetMap contributors"}).addTo(map);
+var layer=null,data=null,active="All";
+function esc(s){return String(s==null?"":s).replace(/[&<>"]/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function draw(){
+  if(layer)map.removeLayer(layer);
+  layer=L.geoJSON(data,{
+    filter:function(f){var p=f.properties;return p.exclude!==true&&(active==="All"||p.category===active)},
+    onEachFeature:function(f,l){var p=f.properties;
+      l.bindPopup("<b>"+esc(p.name)+"</b><br><i>"+esc(p.category)+"</i><br>"+esc(p.description)+"<br>"+esc(p.address)+
+        (p.website?'<br><a href="'+esc(p.website)+'" target="_blank" rel="noopener">Website</a>':""));}
+  }).addTo(map);
+}
+function buttons(){
+  var cats=["All"],bar=document.getElementById("bar");
+  data.features.forEach(function(f){var c=f.properties.category;if(f.properties.exclude!==true&&c&&cats.indexOf(c)<0)cats.push(c)});
+  bar.innerHTML="";
+  cats.forEach(function(c){var b=document.createElement("button");b.textContent=c;if(c===active)b.className="on";
+    b.onclick=function(){active=c;buttons();draw()};bar.appendChild(b)});
+}
+function start(d){data=d;buttons();draw()}
+if(INLINE)start(INLINE);else fetch(DATA_URL).then(function(r){return r.json()}).then(start);
+</script></body></html>
